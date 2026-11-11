@@ -1,0 +1,15 @@
+{
+  "name": "Kolamuru Distribution",
+  "short_name": "Kolamuru",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#7f1d1d",
+  "theme_color": "#7f1d1d",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Google_Maps_Icon_2020.svg/512px-Google_Maps_Icon_2020.svg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
