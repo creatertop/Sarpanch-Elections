@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#7f1d1d">
-    <title>Sarpanch Elections</title>
+    <title>Kolamuru Distribution</title>
+    
     <link rel="manifest" href="manifest.json">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
         }
     </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -33,12 +35,11 @@
                     <i class="fa-solid fa-map-location-dot text-3xl"></i>
                 </div>
                 <h1 class="text-3xl font-extrabold text-white tracking-tight">Kolamuru</h1>
-                <p class="text-yellow-400 font-medium tracking-widest uppercase text-sm mt-1">Sarpanch Elections</p>
+                <p class="text-yellow-400 font-medium tracking-widest uppercase text-sm mt-1">Distribution Portal</p>
             </div>
             
             <div class="bg-white p-8 rounded-[2rem] shadow-xl shadow-red-950/50">
                 <h2 class="text-xl font-bold text-red-900 mb-6 text-center">Secure Sign In</h2>
-                
                 <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
                     <div>
                         <label class="block text-sm font-bold text-red-800 mb-2 uppercase tracking-wide">Username</label>
@@ -47,7 +48,6 @@
                             <input type="text" id="login-username" placeholder="Enter Username" required class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-red-50 border border-red-100 font-bold text-red-900 shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none transition-all placeholder:text-red-300">
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-sm font-bold text-red-800 mb-2 uppercase tracking-wide">Security PIN</label>
                         <div class="relative">
@@ -55,7 +55,6 @@
                             <input type="password" id="login-pass" placeholder="Enter PIN" required class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-red-50 border border-red-100 font-bold text-red-900 shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none transition-all placeholder:text-red-300 font-mono tracking-widest text-lg">
                         </div>
                     </div>
-
                     <button type="submit" class="w-full mt-2 bg-red-800 text-yellow-400 py-3.5 rounded-xl font-bold shadow-md active:scale-[0.98] hover:bg-red-700 transition-all flex items-center justify-center gap-2">
                         Sign In <i class="fa-solid fa-arrow-right-to-bracket"></i>
                     </button>
@@ -75,32 +74,14 @@
                         <p id="user-role-display" class="text-[11px] font-semibold text-yellow-300 uppercase tracking-wider mt-1">Distributer</p>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-10 h-10 rounded-full bg-red-900/50 text-red-200 flex items-center justify-center active:bg-red-900 transition border border-red-700">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                </button>
+                <button onclick="logout()" class="w-10 h-10 rounded-full bg-red-900/50 text-red-200 flex items-center justify-center active:bg-red-900 transition border border-red-700"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
             </div>
         </header>
-
         <main class="flex-1 max-w-4xl mx-auto w-full flex flex-col relative">
-            <div class="sticky top-0 z-10 bg-red-50/90 backdrop-blur-md px-4 pt-4 pb-2 border-b border-red-200">
-                <div class="flex gap-2 mb-3">
-                    <div class="relative flex-1">
-                        <i class="fa-solid fa-map text-red-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                        <select id="ward-select" class="w-full pl-9 pr-4 py-3 rounded-xl bg-white border border-red-200 font-bold text-red-900 appearance-none shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none"></select>
-                        <i class="fa-solid fa-chevron-down text-red-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-sm"></i>
-                    </div>
-                    <button onclick="fetchVillagers()" class="bg-red-700 text-yellow-400 px-6 py-3 rounded-xl font-bold shadow-md active:scale-95 active:bg-red-800 transition flex items-center justify-center"><i class="fa-solid fa-rotate-right"></i></button>
-                </div>
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass text-red-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                    <input type="text" id="search-input" placeholder="Search names or IDs..." class="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-red-200 font-medium text-red-900 shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none transition-all placeholder:text-red-300" onkeyup="renderVillagers()">
-                </div>
-            </div>
-
+            <div id="dist-controls" class="sticky top-0 z-10 bg-red-50/90 backdrop-blur-md px-4 pt-4 pb-2 border-b border-red-200"></div>
             <div class="p-4">
                 <div id="loading-indicator" class="hidden flex flex-col items-center justify-center py-12">
-                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-red-600 mb-4"></i>
-                    <p class="text-red-700 font-medium">Syncing database...</p>
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-red-600 mb-4"></i><p class="text-red-700 font-medium">Syncing database...</p>
                 </div>
                 <div id="villager-list" class="space-y-4 pb-6"></div>
             </div>
@@ -115,7 +96,7 @@
                     <div class="w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center text-red-900 shadow-sm"><i class="fa-solid fa-chart-line"></i></div>
                     <div>
                         <h1 class="font-bold text-lg leading-none tracking-tight">Admin HQ</h1>
-                        <p class="text-[11px] font-semibold text-yellow-300 uppercase tracking-wider mt-1">Live Tracker</p>
+                        <p id="admin-role-display" class="text-[11px] font-semibold text-yellow-300 uppercase tracking-wider mt-1">Live Tracker</p>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -127,23 +108,23 @@
 
         <main class="flex-1 p-4 max-w-6xl mx-auto w-full space-y-6">
             <div id="admin-loading" class="flex flex-col items-center justify-center py-20">
-                <i class="fa-solid fa-circle-notch fa-spin text-5xl text-red-600 mb-4"></i>
-                <p class="text-red-800 font-bold">Aggregating Records...</p>
+                <i class="fa-solid fa-circle-notch fa-spin text-5xl text-red-600 mb-4"></i><p class="text-red-800 font-bold">Aggregating Records...</p>
             </div>
 
             <div id="admin-content" class="hidden">
-                <div class="flex bg-white rounded-2xl shadow-sm border border-red-100 p-1 mb-6">
-                    <button id="tab-btn-teams" onclick="switchAdminTab('teams')" class="flex-1 py-3 text-sm font-bold rounded-xl bg-red-800 text-yellow-400 shadow-sm transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-users-viewfinder"></i> Team Tracker</button>
-                    <button id="tab-btn-wards" onclick="switchAdminTab('wards')" class="flex-1 py-3 text-sm font-bold rounded-xl bg-transparent text-red-800 hover:bg-red-50 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-chart-pie"></i> Ward Analytics</button>
+                <div class="flex bg-white rounded-2xl shadow-sm border border-red-100 p-1 mb-6 flex-wrap gap-1 sm:flex-nowrap">
+                    <button id="tab-btn-teams" onclick="switchAdminTab('teams')" class="flex-1 py-3 text-sm font-bold rounded-xl bg-red-800 text-yellow-400 shadow-sm transition-all flex items-center justify-center gap-2 min-w-[30%]"><i class="fa-solid fa-users-viewfinder"></i> Tracker</button>
+                    <button id="tab-btn-wards" onclick="switchAdminTab('wards')" class="flex-1 py-3 text-sm font-bold rounded-xl bg-transparent text-red-800 hover:bg-red-50 transition-all flex items-center justify-center gap-2 min-w-[30%]"><i class="fa-solid fa-chart-pie"></i> Analytics</button>
+                    <button id="tab-btn-distribute" onclick="switchAdminTab('distribute')" class="flex-1 py-3 text-sm font-bold rounded-xl bg-transparent text-red-800 hover:bg-red-50 transition-all flex items-center justify-center gap-2 min-w-[30%]"><i class="fa-solid fa-clipboard-list"></i> Database</button>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 mb-6">
+                <div id="global-kpis" class="grid grid-cols-3 gap-4 mb-6">
                     <div class="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-slate-300 text-center">
                         <p class="text-slate-500 text-[10px] sm:text-xs font-bold uppercase mb-1">Total Targets</p>
                         <h2 id="stat-total" class="text-2xl sm:text-3xl font-black text-slate-800">0</h2>
                     </div>
                     <div class="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-green-500 text-center">
-                        <p class="text-green-600 text-[10px] sm:text-xs font-bold uppercase mb-1">Total Paid</p>
+                        <p class="text-green-600 text-[10px] sm:text-xs font-bold uppercase mb-1">Verified Paid</p>
                         <h2 id="stat-paid" class="text-2xl sm:text-3xl font-black text-green-600">0</h2>
                     </div>
                     <div class="bg-white p-4 rounded-2xl shadow-sm border-b-4 border-red-500 text-center">
@@ -173,40 +154,28 @@
                             <h3 class="font-bold text-red-900"><i class="fa-solid fa-magnifying-glass-chart text-red-500 mr-2"></i>Ward Inspector</h3>
                             <select id="admin-ward-select" onchange="renderSpecificWardChart()" class="w-full sm:w-48 px-4 py-2 rounded-xl bg-red-50 border border-red-200 font-bold text-red-900 outline-none focus:ring-2 focus:ring-yellow-400"></select>
                         </div>
-                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                            <div class="relative h-56 w-full flex justify-center">
-                                <canvas id="specificWardPie"></canvas>
-                            </div>
+                            <div class="relative h-56 w-full flex justify-center"><canvas id="specificWardPie"></canvas></div>
                             <div class="space-y-4">
-                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-                                    <span class="font-bold text-slate-600">Total Voters in Ward:</span>
-                                    <span id="aw-total" class="text-xl font-black text-slate-800">0</span>
-                                </div>
-                                <div class="bg-green-50 p-4 rounded-xl border border-green-200 flex justify-between items-center">
-                                    <span class="font-bold text-green-700">Successfully Paid:</span>
-                                    <span id="aw-paid" class="text-xl font-black text-green-600">0</span>
-                                </div>
-                                <div class="bg-red-50 p-4 rounded-xl border border-red-200 flex justify-between items-center">
-                                    <span class="font-bold text-red-700">Pending Payment:</span>
-                                    <span id="aw-pending" class="text-xl font-black text-red-600">0</span>
-                                </div>
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center"><span class="font-bold text-slate-600">Total Voters in Ward:</span><span id="aw-total" class="text-xl font-black text-slate-800">0</span></div>
+                                <div class="bg-green-50 p-4 rounded-xl border border-green-200 flex justify-between items-center"><span class="font-bold text-green-700">Verified Paid:</span><span id="aw-paid" class="text-xl font-black text-green-600">0</span></div>
+                                <div class="bg-red-50 p-4 rounded-xl border border-red-200 flex justify-between items-center"><span class="font-bold text-red-700">Pending:</span><span id="aw-pending" class="text-xl font-black text-red-600">0</span></div>
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-red-100">
                         <h3 class="font-bold text-red-900 mb-4"><i class="fa-solid fa-chart-line text-red-500 mr-2"></i>Progress (Wards 1-18)</h3>
-                        <div class="relative h-72 w-full">
-                            <canvas id="wardLineChart"></canvas>
-                        </div>
+                        <div class="relative h-72 w-full"><canvas id="wardLineChart"></canvas></div>
                     </div>
                 </div>
 
+                <div id="tab-content-distribute" class="hidden">
+                    <div id="admin-dist-controls" class="bg-red-50/90 backdrop-blur-md pb-4 border-b border-red-200 mb-4 sticky top-16 z-10"></div>
+                    <div id="admin-villager-list" class="space-y-4 pb-6"></div>
+                </div>
             </div>
         </main>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
