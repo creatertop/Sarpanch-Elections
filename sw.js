@@ -3,5 +3,4 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-    // Leave empty for basic online-only functionality
 });
