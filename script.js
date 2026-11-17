@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwlAh4ouv2zS8paA_iY5v_uYPD-Gn-zPCcRgBb-dAgX5Mt9QjdVpoHeR0_o-eTfpXQsPA/exec'; 
+const API_URL = 'https://script.google.com/macros/s/AKfycbxjctWSTXL4NNmEHR9F3Mn8Ndk4vzFHjvwKstK57uGMOgC-0x9uZXVROAL3-mAVjI2rCQ/exec'; 
 
 let currentUser = null; let currentUserRole = null;
 let villagersData = []; let locationTracker = null; 
@@ -6,22 +6,41 @@ window.adminMarkers = [];
 
 let pieChartInstance = null; let lineChartInstance = null;
 let mapInstance = null; let cachedAdminData = null; let specificWardPieInstance = null;
+let filterDebounceTimer = null; 
 
-function getSearchControlsHTML() {
-    let options = '';
-    for (let i = 1; i <= 18; i++) options += `<option value="${i}">Ward ${i} Database</option>`;
+function debouncedRender() {
+    clearTimeout(filterDebounceTimer);
+    filterDebounceTimer = setTimeout(renderVillagers, 250);
+}
+
+function getSearchControlsHTML(isAdmin = false) {
+    let wardOptions = '<option value="All">All Wards</option>';
+    for (let i = 1; i <= 18; i++) wardOptions += `<option value="${i}">Ward ${i}</option>`;
+    
+    const exportBtn = isAdmin ? `<button onclick="downloadExcel()" class="bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm active:scale-95 transition flex items-center justify-center" title="Export Excel"><i class="fa-solid fa-file-excel"></i></button>` : '';
+
     return `
-        <div class="flex gap-2 mb-3">
-            <div class="relative flex-1">
-                <i class="fa-solid fa-map text-red-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                <select id="ward-select-input" class="w-full pl-9 pr-4 py-3 rounded-xl bg-white border border-red-200 font-bold text-red-900 appearance-none shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none">${options}</select>
-                <i class="fa-solid fa-chevron-down text-red-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-sm"></i>
+        <div class="flex flex-col gap-2 mb-3">
+            <div class="relative w-full">
+                <i class="fa-solid fa-magnifying-glass text-red-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="search-input" placeholder="Search by name, ID, house..." class="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-red-200 font-medium text-red-900 shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none transition-all placeholder:text-red-300" onkeyup="debouncedRender()">
             </div>
-            <button onclick="fetchVillagers()" class="bg-red-700 text-yellow-400 px-6 py-3 rounded-xl font-bold shadow-md active:scale-95 active:bg-red-800 transition flex items-center justify-center"><i class="fa-solid fa-rotate-right"></i></button>
-        </div>
-        <div class="relative">
-            <i class="fa-solid fa-magnifying-glass text-red-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input type="text" id="search-input" placeholder="Search by name, ID, house, GP num..." class="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-red-200 font-medium text-red-900 shadow-sm focus:ring-2 focus:ring-yellow-400 outline-none transition-all placeholder:text-red-300" onkeyup="renderVillagers()">
+            <div class="flex gap-2">
+                <select id="filter-ward" class="flex-1 px-3 py-2 rounded-lg bg-white border border-red-200 text-sm font-bold text-red-900 shadow-sm outline-none" onchange="renderVillagers()">
+                    ${wardOptions}
+                </select>
+                <select id="filter-gender" class="flex-1 px-3 py-2 rounded-lg bg-white border border-red-200 text-sm font-bold text-red-900 shadow-sm outline-none" onchange="renderVillagers()">
+                    <option value="All">All Genders</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="filter-age" inputmode="numeric" placeholder="Age" oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedRender();" class="w-24 px-3 py-2 rounded-lg bg-white border border-red-200 text-sm font-bold text-red-900 shadow-sm outline-none placeholder:text-slate-400">
+                <input type="text" id="filter-gp" inputmode="numeric" placeholder="GP Num" oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedRender();" class="flex-1 px-3 py-2 rounded-lg bg-white border border-red-200 text-sm font-bold text-red-900 shadow-sm outline-none placeholder:text-slate-400">
+                ${exportBtn}
+                <button onclick="fetchVillagers('All')" class="bg-red-700 text-yellow-400 px-4 py-2 rounded-lg font-bold shadow-sm active:scale-95 transition flex items-center justify-center" title="Refresh"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
         </div>
     `;
 }
@@ -53,17 +72,19 @@ async function handleLogin(event) {
 function login(username, role) {
     currentUser = username; currentUserRole = role;
     document.getElementById('login-view').classList.add('hidden');
+    
     if (role === 'Admin') {
         document.getElementById('admin-view').classList.remove('hidden');
         document.getElementById('admin-role-display').innerText = username + " (Admin)";
-        document.getElementById('admin-dist-controls').innerHTML = getSearchControlsHTML();
+        document.getElementById('admin-dist-controls').innerHTML = getSearchControlsHTML(true);
         loadAdminDashboard();
+        fetchVillagers("All"); 
     } else {
         document.getElementById('dashboard-view').classList.remove('hidden');
         document.getElementById('user-role-display').innerText = username;
-        document.getElementById('dist-controls').innerHTML = getSearchControlsHTML();
-        document.getElementById('villager-list').innerHTML = `<div class="text-center py-10"><i class="fa-solid fa-cloud-arrow-down text-red-200 text-5xl mb-3"></i><p class="text-red-500 font-medium">Select a ward and tap refresh.</p></div>`; 
+        document.getElementById('dist-controls').innerHTML = getSearchControlsHTML(false);
         startLocationTracking(username);
+        fetchVillagers("All"); 
     }
 }
 
@@ -100,8 +121,7 @@ function getStatusClasses(status, type) {
 
 function uiToggleVisit(id) {
     const el = document.getElementById(`visit-${id}`);
-    const current = el.innerText.trim();
-    const next = current === 'Unvisited' ? 'Visited' : 'Unvisited';
+    const next = el.innerText.trim() === 'Unvisited' ? 'Visited' : 'Unvisited';
     el.innerHTML = `<i class="fa-solid fa-person-walking-arrow-right"></i> ${next}`;
     el.className = `px-2 py-2 rounded-lg font-bold text-xs shadow-sm transition-all border ${getStatusClasses(next, 'visit')}`;
 }
@@ -113,16 +133,16 @@ function uiChangeAvail(id) {
 
 function uiToggleVerify(id) {
     const el = document.getElementById(`verify-${id}`);
-    const current = el.innerText.trim();
-    const next = current === 'Not Verified' ? 'Verified' : 'Not Verified';
+    const next = el.innerText.trim() === 'Not Verified' ? 'Verified' : 'Not Verified';
     el.innerHTML = `<i class="fa-solid fa-shield-check"></i> ${next}`;
     el.className = `px-2 py-2 rounded-lg font-bold text-xs shadow-sm transition-all border ${getStatusClasses(next, 'verify')}`;
 }
 
-async function fetchVillagers() {
-    const wardNumber = document.getElementById('ward-select-input').value;
+async function fetchVillagers(wardOverride) {
+    const wardNumber = wardOverride || (document.getElementById('filter-ward') ? document.getElementById('filter-ward').value : 'All');
     const listContainer = currentUserRole === 'Admin' ? document.getElementById('admin-villager-list') : document.getElementById('villager-list');
-    listContainer.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-red-600 mb-4"></i><p class="text-red-700 font-medium">Syncing database...</p></div>';
+    
+    listContainer.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-red-600 mb-4"></i><p class="text-red-700 font-medium">Downloading Database...</p></div>';
 
     try {
         const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_villagers', wardNumber: wardNumber }) });
@@ -134,32 +154,55 @@ async function fetchVillagers() {
 
 function renderVillagers() {
     const listContainer = currentUserRole === 'Admin' ? document.getElementById('admin-villager-list') : document.getElementById('villager-list');
-    const searchQuery = document.getElementById('search-input').value.toLowerCase();
     const isAdmin = currentUserRole === 'Admin';
     listContainer.innerHTML = '';
-    
-    // Updated search logic applying to all parameters
-    const filteredData = villagersData.filter(v => 
-        (v.voterName && v.voterName.toLowerCase().includes(searchQuery)) || 
-        (v.voterId && v.voterId.toLowerCase().includes(searchQuery)) ||
-        (v.houseNumber && v.houseNumber.toString().toLowerCase().includes(searchQuery)) ||
-        (v.gpNumber && v.gpNumber.toString().toLowerCase().includes(searchQuery)) ||
-        (v.age && v.age.toString().includes(searchQuery)) ||
-        (v.gender && v.gender.toLowerCase().includes(searchQuery)) ||
-        (v.relativeName && v.relativeName.toLowerCase().includes(searchQuery)) ||
-        (v.phone && v.phone.toString().includes(searchQuery))
-    );
 
-    if (filteredData.length === 0) { listContainer.innerHTML = `<div class="text-center py-10"><p class="text-red-500 font-medium">No records found.</p></div>`; return; }
+    const searchQuery = document.getElementById('search-input') ? document.getElementById('search-input').value.trim().toLowerCase() : '';
+    const filterWard = document.getElementById('filter-ward') ? document.getElementById('filter-ward').value : 'All';
+    const filterGender = document.getElementById('filter-gender') ? document.getElementById('filter-gender').value : 'All';
+    const filterAge = document.getElementById('filter-age') ? document.getElementById('filter-age').value.trim() : '';
+    const filterGp = document.getElementById('filter-gp') ? document.getElementById('filter-gp').value.trim() : '';
 
-    filteredData.forEach(v => {
+    const filteredData = villagersData.filter(v => {
+        // Free text search
+        const matchSearch = !searchQuery || 
+            (v.voterName && v.voterName.toLowerCase().includes(searchQuery)) || 
+            (v.voterId && v.voterId.toLowerCase().includes(searchQuery)) ||
+            (v.houseNumber && v.houseNumber.toString().toLowerCase().includes(searchQuery)) ||
+            (v.relativeName && v.relativeName.toLowerCase().includes(searchQuery)) ||
+            (v.phone && v.phone.toString().includes(searchQuery));
+        
+        // Exact matches
+        const matchWard = filterWard === 'All' || (v.wardNumber && v.wardNumber.toString().trim() === filterWard);
+        const matchAge = !filterAge || (v.age && v.age.toString().trim() === filterAge);
+        const matchGp = !filterGp || (v.gpNumber && v.gpNumber.toString().trim() === filterGp);
+
+        // Smart Gender Match (Handles both English and Telugu text)
+        const matchGender = filterGender === 'All' || (v.gender && (() => {
+            const g = v.gender.toString().trim().toLowerCase();
+            if (filterGender === 'Male') return g === 'male' || g === 'పు' || g === 'పురుషుడు' || g === 'm';
+            if (filterGender === 'Female') return g === 'female' || g === 'స్' || g === 'స్త్రీ' || g === 'f';
+            return false;
+        })());
+
+        return matchSearch && matchWard && matchGender && matchAge && matchGp;
+    });
+
+    if (filteredData.length === 0) { 
+        listContainer.innerHTML = `<div class="text-center py-10"><p class="text-red-500 font-medium">No records found matching filters.</p></div>`; 
+        return; 
+    }
+
+    const displayData = filteredData.slice(0, 100);
+
+    displayData.forEach(v => {
         const card = document.createElement('div');
         card.className = "bg-white rounded-[1.25rem] p-4 shadow-sm border border-red-100 flex flex-col relative overflow-hidden";
         const accentLine = `<div class="absolute left-0 top-0 bottom-0 w-1.5 ${v.verification === 'Verified' ? 'bg-green-500' : 'bg-red-500'}"></div>`;
         
         const lockAvail = (!isAdmin && v.availability !== 'Unavailable' && v.availability !== '') ? 'disabled' : '';
         const lockVerify = (!isAdmin && v.verification === 'Verified') ? 'disabled' : '';
-        const lockPhone = (!isAdmin && v.phone && v.phone.trim() !== '') ? 'readonly' : '';
+        const lockPhone = (!isAdmin && v.phone && v.phone.toString().trim() !== '') ? 'readonly' : '';
         const blurAvail = lockAvail ? 'opacity-70' : '';
         const blurVerify = lockVerify ? 'opacity-70 cursor-not-allowed' : '';
         
@@ -173,11 +216,15 @@ function renderVillagers() {
                 <div class="flex items-center gap-4 text-sm font-medium text-red-800 mb-2">
                     <span class="bg-red-50 px-2 py-0.5 rounded border border-red-100"><i class="fa-regular fa-id-card text-red-400 mr-1.5"></i>${v.voterId}</span>
                 </div>
-                <div class="border-t border-red-100 pt-2 pb-1">
-                    <p class="text-sm text-red-800 font-medium"><span class="text-red-500 text-xs uppercase tracking-wider mr-1">Relative:</span> ${v.relativeName} <span class="ml-2 text-red-500 text-[10px] uppercase">(${v.age} / ${v.gender})</span></p>
+                
+                <div class="border-t border-red-100 pt-2 pb-2 text-xs text-red-800 grid grid-cols-2 gap-y-1.5">
+                    <p><span class="text-red-500 uppercase font-bold mr-1">Relative:</span> ${v.relativeName}</p>
+                    <p><span class="text-red-500 uppercase font-bold mr-1">Ward:</span> ${v.wardNumber}</p>
+                    <p><span class="text-red-500 uppercase font-bold mr-1">GP Num:</span> ${v.gpNumber}</p>
+                    <p><span class="text-red-500 uppercase font-bold mr-1">Age/Sex:</span> ${v.age} / ${v.gender}</p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
                     <button id="visit-${v.voterId}" onclick="uiToggleVisit('${v.voterId}')" class="${getStatusClasses(v.visitStatus, 'visit')} px-2 py-2 rounded-lg font-bold text-xs shadow-sm transition-all border">
                         <i class="fa-solid fa-person-walking-arrow-right"></i> ${v.visitStatus}
                     </button>
@@ -196,41 +243,86 @@ function renderVillagers() {
                         <i class="fa-solid fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         <input type="tel" id="phone-${v.voterId}" value="${v.phone}" placeholder="Add Phone Number" class="w-full pl-9 pr-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-yellow-400" ${lockPhone}>
                     </div>
-                    <button onclick="submitVoter('${v.voterId}')" id="submit-btn-${v.voterId}" class="bg-red-800 text-yellow-400 px-4 py-2 rounded-lg font-bold shadow-sm active:bg-red-700 text-sm whitespace-nowrap transition">Submit</button>
+                    <button onclick="submitVoter('${v.voterId}')" id="submit-btn-${v.voterId}" class="bg-red-800 text-yellow-400 px-4 py-2 rounded-lg font-bold shadow-sm active:scale-95 active:bg-red-700 text-sm whitespace-nowrap transition-transform duration-75">Submit</button>
                 </div>
                 ${v.updatedBy ? `<p class="text-[10px] text-slate-400 mt-2 text-right">Last updated by ${v.updatedBy}</p>` : ''}
             </div>
         `;
         listContainer.appendChild(card);
     });
+
+    if (filteredData.length > 100) {
+        const msg = document.createElement('div');
+        msg.className = "text-center py-4";
+        msg.innerHTML = `<p class="text-red-500 font-bold text-sm">Showing first 100 of ${filteredData.length} records.<br>Use filters above to narrow your search.</p>`;
+        listContainer.appendChild(msg);
+    }
 }
 
-async function submitVoter(voterId) {
-    const btn = document.getElementById(`submit-btn-${voterId}`);
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; btn.disabled = true;
-
+function submitVoter(voterId) {
     const visit = document.getElementById(`visit-${voterId}`).innerText.trim();
     const avail = document.getElementById(`avail-${voterId}`).value;
     const verify = document.getElementById(`verify-${voterId}`).innerText.trim();
     const phone = document.getElementById(`phone-${voterId}`).value.trim();
 
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST', body: JSON.stringify({ action: 'update_voter', voterId: voterId, visit: visit, avail: avail, verify: verify, phone: phone, teamName: currentUser, role: currentUserRole })
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            const targetIndex = villagersData.findIndex(v => v.voterId === voterId);
-            if (targetIndex > -1) {
-                villagersData[targetIndex].visitStatus = visit; villagersData[targetIndex].availability = avail;
-                villagersData[targetIndex].verification = verify; villagersData[targetIndex].phone = phone;
-                villagersData[targetIndex].updatedBy = currentUser;
-            }
+    const targetIndex = villagersData.findIndex(v => v.voterId === voterId);
+    if (targetIndex === -1) return;
+    const oldData = { ...villagersData[targetIndex] };
+
+    villagersData[targetIndex].visitStatus = visit;
+    villagersData[targetIndex].availability = avail;
+    villagersData[targetIndex].verification = verify;
+    villagersData[targetIndex].phone = phone;
+    villagersData[targetIndex].updatedBy = currentUser;
+    
+    renderVillagers(); 
+
+    fetch(API_URL, {
+        method: 'POST', 
+        body: JSON.stringify({ action: 'update_voter', voterId: voterId, visit: visit, avail: avail, verify: verify, phone: phone, teamName: currentUser, role: currentUserRole })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status !== 'success') {
+            alert("Database Error: " + result.message);
+            villagersData[targetIndex] = oldData;
             renderVillagers();
-        } else { alert(result.message); btn.innerHTML = originalHtml; btn.disabled = false; }
-    } catch (error) { alert("Failed to save. Please try again."); btn.innerHTML = originalHtml; btn.disabled = false; }
+        }
+    })
+    .catch(() => {
+        alert("No internet. Failed to save.");
+        villagersData[targetIndex] = oldData;
+        renderVillagers();
+    });
+}
+
+function downloadExcel() {
+    if (!villagersData || villagersData.length === 0) {
+        alert("No data available to download.");
+        return;
+    }
+
+    const exportData = villagersData.map(v => ({
+        "Ward Number": v.wardNumber,
+        "GP Number": v.gpNumber,
+        "Voter ID": v.voterId,
+        "Voter Name": v.voterName,
+        "Relative Name": v.relativeName,
+        "Age": v.age,
+        "Gender": v.gender,
+        "House Number": v.houseNumber,
+        "Visit Status": v.visitStatus,
+        "Availability Status": v.availability,
+        "Verification Status": v.verification,
+        "Phone Number": v.phone,
+        "Updated By": v.updatedBy,
+        "Last Updated": v.timestamp
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Kolamuru_Data");
+    XLSX.writeFile(workbook, "Kolamuru_Distribution_Update.xlsx");
 }
 
 async function loadAdminDashboard() {
