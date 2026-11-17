@@ -16,9 +16,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
 </head>
@@ -81,7 +83,7 @@
             <div id="dist-controls" class="sticky top-0 z-10 bg-red-50/90 backdrop-blur-md px-4 pt-4 pb-2 border-b border-red-200"></div>
             <div class="p-4">
                 <div id="loading-indicator" class="hidden flex flex-col items-center justify-center py-12">
-                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-red-600 mb-4"></i><p class="text-red-700 font-medium">Syncing database...</p>
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-red-600 mb-4"></i><p class="text-red-700 font-medium">Downloading Database...</p>
                 </div>
                 <div id="villager-list" class="space-y-4 pb-6"></div>
             </div>
@@ -176,6 +178,7 @@
             </div>
         </main>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
